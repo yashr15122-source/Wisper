@@ -8,7 +8,7 @@ import { User, Message } from "../types";
 import MessageCard from "../components/MessageCard";
 import ShareModal from "../components/ShareModal";
 import HintModal from "../components/HintModal";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 
 const publicBase = () => {
   const configured = import.meta.env.VITE_PUBLIC_APP_URL;
@@ -71,6 +71,10 @@ export default function Dashboard() {
   if (me.isError) { nav("/auth"); return null; }
 
   const user = me.data!;
+
+  if (user.isAdmin) {
+    return <Navigate to="/admin" replace />;
+  }
 
   async function save() {
     setSaveText("Saving…");

@@ -3,14 +3,16 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import PublicSend from "./pages/PublicSend";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
+import AdminDashboard from "./pages/AdminDashboard";
 
 const qc=new QueryClient();
 
 export default function App(){
- return <QueryClientProvider client={qc}><BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/,"")}><Routes>
+  return <QueryClientProvider client={qc}><BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/,"")}><Routes>
   <Route path="/auth" element={<Auth/>}/>
   <Route path="/dashboard" element={<Dashboard/>}/>
+  <Route path="/admin" element={<AdminDashboard/>}/>
   <Route path="/:username" element={<PublicSend/>}/>
   <Route path="/" element={<Navigate to="/auth" replace/>}/>
- </Routes></BrowserRouter></QueryClientProvider>
+  </Routes></BrowserRouter></QueryClientProvider>
 }

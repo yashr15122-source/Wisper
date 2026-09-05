@@ -1,9 +1,11 @@
 export type User = {
+  _id: string;
   id: string;
   username: string;
   email: string;
   customPrompt: string;
   isAcceptingMessages: boolean;
+  isAdmin?: boolean;
   createdAt: string;
 };
 

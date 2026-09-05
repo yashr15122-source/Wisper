@@ -6,6 +6,7 @@ export interface IUser extends Document {
   password: string;
   customPrompt: string;
   isAcceptingMessages: boolean;
+  isAdmin: boolean;
   createdAt: Date;
 }
 
@@ -15,6 +16,7 @@ const userSchema = new Schema<IUser>({
   password: { type: String, required: true, select: false },
   customPrompt: { type: String, default: "send me anonymous messages!", maxlength: 120 },
   isAcceptingMessages: { type: Boolean, default: true },
+  isAdmin: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }
 });
 
