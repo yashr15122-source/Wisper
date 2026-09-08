@@ -4,6 +4,7 @@ import PublicSend from "./pages/PublicSend";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import AdminDashboard from "./pages/AdminDashboard";
+import Landing from "./pages/Landing";
 
 const qc=new QueryClient();
 
@@ -13,6 +14,6 @@ export default function App(){
   <Route path="/dashboard" element={<Dashboard/>}/>
   <Route path="/admin" element={<AdminDashboard/>}/>
   <Route path="/:username" element={<PublicSend/>}/>
-  <Route path="/" element={<Navigate to="/auth" replace/>}/>
+  <Route path="/" element={<Landing/>}/>
   </Routes></BrowserRouter></QueryClientProvider>
 }
