@@ -37,7 +37,7 @@ jobs:
           VITE_API_URL: ${{ vars.VITE_API_URL }}
           VITE_SOCKET_URL: ${{ vars.VITE_SOCKET_URL }}
           VITE_PUBLIC_APP_URL: ${{ vars.VITE_PUBLIC_APP_URL }}
-          VITE_BASE_PATH: /${{ github.event.repository.name }}/
+          VITE_BASE_PATH: /
         run: npm run build
 
       - name: Create SPA fallback
