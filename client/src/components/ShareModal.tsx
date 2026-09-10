@@ -1,22 +1,23 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import html2canvas from "html2canvas";
-import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
   ArrowRight,
   Check,
   Copy,
   Download,
-  ExternalLink,
   Instagram,
   Link2,
   MessageCircle,
-  Share2,
   X,
 } from "lucide-react";
 import { Message } from "../types";
 
-type Platform = "instagram" | "snapchat" | "whatsapp" | "x";
+type Platform =
+  | "instagram"
+  | "snapchat"
+  | "whatsapp"
+  | "x";
 
 type Props = {
   message: Message;
@@ -32,21 +33,17 @@ const platforms: {
   {
     id: "instagram",
     label: "Instagram",
-    icon: <Instagram size={21} />,
+    icon: <Instagram size={20} />,
   },
   {
     id: "snapchat",
     label: "Snapchat",
-    icon: (
-      <span className="text-[20px] font-black leading-none">
-        👻
-      </span>
-    ),
+    icon: <span className="text-lg">👻</span>,
   },
   {
     id: "whatsapp",
     label: "WhatsApp",
-    icon: <MessageCircle size={21} />,
+    icon: <MessageCircle size={20} />,
   },
   {
     id: "x",
@@ -62,20 +59,31 @@ function wrapText(
 ) {
   const words = text.split(/\s+/);
   const lines: string[] = [];
-  let line = "";
+
+  let currentLine = "";
 
   for (const word of words) {
-    const test = line ? `${line} ${word}` : word;
+    const testLine = currentLine
+      ? `${currentLine} ${word}`
+      : word;
 
-    if (ctx.measureText(test).width <= maxWidth) {
-      line = test;
+    if (
+      ctx.measureText(testLine).width <=
+      maxWidth
+    ) {
+      currentLine = testLine;
     } else {
-      if (line) lines.push(line);
-      line = word;
+      if (currentLine) {
+        lines.push(currentLine);
+      }
+
+      currentLine = word;
     }
   }
 
-  if (line) lines.push(line);
+  if (currentLine) {
+    lines.push(currentLine);
+  }
 
   return lines;
 }
@@ -92,10 +100,12 @@ async function createStoryImage(
   const ctx = canvas.getContext("2d");
 
   if (!ctx) {
-    throw new Error("Could not create image.");
+    throw new Error("Unable to create canvas");
   }
 
-  // Background
+  /*
+   * Background
+   */
   const gradient = ctx.createLinearGradient(
     0,
     0,
@@ -104,45 +114,56 @@ async function createStoryImage(
   );
 
   gradient.addColorStop(0, "#111827");
-  gradient.addColorStop(0.45, "#581c87");
-  gradient.addColorStop(1, "#be185d");
+  gradient.addColorStop(0.45, "#7e22ce");
+  gradient.addColorStop(1, "#e11d48");
 
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, 1080, 1920);
 
-  // Decorative circles
-  ctx.globalAlpha = 0.16;
+  /*
+   * Decorative circles
+   */
+  ctx.globalAlpha = 0.12;
+
+  ctx.fillStyle = "#ffffff";
 
   ctx.beginPath();
-  ctx.arc(100, 180, 220, 0, Math.PI * 2);
-  ctx.fillStyle = "#ffffff";
+  ctx.arc(80, 150, 240, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.beginPath();
-  ctx.arc(1000, 1700, 280, 0, Math.PI * 2);
+  ctx.arc(1050, 1780, 300, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.globalAlpha = 1;
 
-  // Whisper logo
+  /*
+   * Logo
+   */
   ctx.fillStyle = "#ffffff";
   ctx.font = "900 64px Arial";
-  ctx.fillText("Whisper", 80, 150);
+  ctx.fillText("Whisper", 80, 140);
 
-  // Anonymous label
+  /*
+   * Label
+   */
   ctx.fillStyle = "rgba(255,255,255,0.65)";
-  ctx.font = "600 28px Arial";
-  ctx.fillText("ANONYMOUS MESSAGE", 80, 215);
+  ctx.font = "700 27px Arial";
+  ctx.fillText(
+    "ANONYMOUS MESSAGE",
+    80,
+    205
+  );
 
-  // Message card
+  /*
+   * Message card
+   */
   const cardX = 70;
-  const cardY = 430;
+  const cardY = 420;
   const cardWidth = 940;
-  const cardHeight = 760;
+  const cardHeight = 780;
 
   ctx.fillStyle = "rgba(255,255,255,0.97)";
-
-  const radius = 48;
 
   ctx.beginPath();
   ctx.roundRect(
@@ -150,71 +171,91 @@ async function createStoryImage(
     cardY,
     cardWidth,
     cardHeight,
-    radius
+    50
   );
   ctx.fill();
 
-  // Message
+  /*
+   * Message text
+   */
   ctx.fillStyle = "#111827";
   ctx.font = "900 58px Arial";
 
-  const maxTextWidth = 800;
   const lines = wrapText(
     ctx,
     message.content,
-    maxTextWidth
+    800
   );
 
-  const lineHeight = 78;
   const maxLines = 7;
-
-  const visibleLines = lines.slice(0, maxLines);
+  const visibleLines = lines.slice(
+    0,
+    maxLines
+  );
 
   if (lines.length > maxLines) {
     visibleLines[maxLines - 1] =
-      `${visibleLines[maxLines - 1].slice(0, -3)}...`;
+      visibleLines[maxLines - 1].slice(
+        0,
+        -3
+      ) + "...";
   }
+
+  const lineHeight = 78;
 
   let textY =
     cardY +
     cardHeight / 2 -
     (visibleLines.length * lineHeight) / 2 +
-    25;
+    20;
 
   for (const line of visibleLines) {
-    ctx.fillText(line, cardX + 70, textY);
+    ctx.fillText(
+      line,
+      cardX + 70,
+      textY
+    );
+
     textY += lineHeight;
   }
 
-  // Bottom text
-  ctx.fillStyle = "rgba(255,255,255,0.75)";
-  ctx.font = "600 30px Arial";
+  /*
+   * Bottom text
+   */
   ctx.textAlign = "center";
+
+  ctx.fillStyle =
+    "rgba(255,255,255,0.75)";
+
+  ctx.font = "600 30px Arial";
 
   ctx.fillText(
     "Someone sent this anonymously 👀",
     540,
-    1360
+    1370
   );
 
-  // Public link
+  /*
+   * Username link
+   */
   ctx.fillStyle = "#ffffff";
   ctx.font = "900 40px Arial";
 
   ctx.fillText(
     `wisper.site/${username}`,
     540,
-    1450
+    1460
   );
 
-  // Call to action
-  ctx.fillStyle = "rgba(255,255,255,0.7)";
+  ctx.fillStyle =
+    "rgba(255,255,255,0.7)";
+
   ctx.font = "500 27px Arial";
 
   ctx.fillText(
     "Send me an anonymous message",
     540,
-    1510
+    1520
   );
 
   ctx.textAlign = "left";
@@ -222,11 +263,16 @@ async function createStoryImage(
   return new Promise((resolve, reject) => {
     canvas.toBlob(
       (blob) => {
-        if (blob) {
-          resolve(blob);
-        } else {
-          reject(new Error("Could not create image."));
+        if (!blob) {
+          reject(
+            new Error(
+              "Unable to generate image"
+            )
+          );
+          return;
         }
+
+        resolve(blob);
       },
       "image/png",
       1
@@ -241,23 +287,27 @@ function TutorialPreview({
   step: number;
   shareLink: string;
 }) {
+  /*
+   * STEP 1
+   */
   if (step === 1) {
     return (
       <div className="relative flex h-[330px] items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-br from-pink-500 via-purple-500 to-orange-400">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute left-8 top-8 h-28 w-28 rounded-full bg-white" />
-          <div className="absolute bottom-5 right-5 h-40 w-40 rounded-full bg-white" />
-        </div>
+        <div className="absolute left-8 top-8 h-28 w-28 rounded-full bg-white/20" />
+
+        <div className="absolute bottom-4 right-4 h-40 w-40 rounded-full bg-white/10" />
 
         <div className="relative h-[250px] w-[145px] rounded-[28px] border-[6px] border-black bg-white shadow-2xl">
           <div className="absolute left-1/2 top-2 h-5 w-16 -translate-x-1/2 rounded-full bg-black" />
 
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2">
             <div className="grid h-12 w-12 place-items-center rounded-full bg-white text-black shadow-xl">
-              <span className="text-3xl font-light">+</span>
+              <span className="text-3xl font-light">
+                +
+              </span>
             </div>
 
-            <div className="absolute -right-14 -top-7 whitespace-nowrap rounded-full bg-black px-3 py-2 text-xs font-bold text-white">
+            <div className="absolute -right-16 -top-7 whitespace-nowrap rounded-full bg-black px-3 py-2 text-xs font-bold text-white">
               Click +
             </div>
           </div>
@@ -266,34 +316,38 @@ function TutorialPreview({
     );
   }
 
+  /*
+   * STEP 2
+   */
   if (step === 2) {
     return (
       <div className="relative flex h-[330px] items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-br from-pink-500 via-purple-500 to-orange-400">
         <div className="relative h-[250px] w-[145px] rounded-[28px] border-[6px] border-black bg-white shadow-2xl">
           <div className="absolute left-1/2 top-2 h-5 w-16 -translate-x-1/2 rounded-full bg-black" />
 
-          <div className="absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-3 rounded-full bg-black/90 px-4 py-3 text-white">
-            <Link2 size={23} />
+          <div className="absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-black px-4 py-3 text-white">
+            <Link2 size={22} />
 
             <span className="text-xs font-bold">
               Link
             </span>
           </div>
 
-          <div className="absolute bottom-20 left-1/2 -translate-x-1/2">
-            <div className="rounded-full bg-black px-4 py-2 text-xs font-bold text-white shadow-lg">
-              🔗 Link sticker
-            </div>
+          <div className="absolute bottom-20 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-black px-4 py-2 text-xs font-bold text-white">
+            🔗 Link sticker
           </div>
         </div>
       </div>
     );
   }
 
+  /*
+   * STEP 3
+   */
   if (step === 3) {
     return (
       <div className="relative flex h-[330px] items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-br from-pink-500 via-purple-500 to-orange-400">
-        <div className="w-[300px] rounded-2xl bg-white p-5 shadow-2xl">
+        <div className="w-[310px] rounded-2xl bg-white p-5 shadow-2xl">
           <div className="mb-4 text-sm font-bold text-gray-800">
             Add link
           </div>
@@ -314,6 +368,9 @@ function TutorialPreview({
     );
   }
 
+  /*
+   * STEP 4
+   */
   return (
     <div className="relative flex h-[330px] items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-br from-pink-500 via-purple-500 to-orange-400">
       <div className="relative h-[250px] w-[145px] rotate-[-2deg] rounded-[28px] border-[6px] border-black bg-gradient-to-br from-purple-600 to-pink-500 shadow-2xl">
@@ -348,8 +405,6 @@ export default function ShareModal({
   username,
   close,
 }: Props) {
-  const storyRef = useRef<HTMLDivElement>(null);
-
   const [platform, setPlatform] =
     useState<Platform>("instagram");
 
@@ -364,14 +419,22 @@ export default function ShareModal({
     [username]
   );
 
+  /*
+   * Close with Escape
+   */
   useEffect(() => {
-    function handleEscape(event: KeyboardEvent) {
+    const handleEscape = (
+      event: KeyboardEvent
+    ) => {
       if (event.key === "Escape") {
         close();
       }
-    }
+    };
 
-    window.addEventListener("keydown", handleEscape);
+    window.addEventListener(
+      "keydown",
+      handleEscape
+    );
 
     return () => {
       window.removeEventListener(
@@ -381,54 +444,78 @@ export default function ShareModal({
     };
   }, [close]);
 
+  /*
+   * Copy link
+   */
   async function copyLink() {
     try {
-      await navigator.clipboard.writeText(shareLink);
+      await navigator.clipboard.writeText(
+        shareLink
+      );
+
       setCopied(true);
 
-      setTimeout(() => {
-        setCopied(false);
-      }, 1800);
+      setTimeout(
+        () => setCopied(false),
+        1800
+      );
     } catch {
-      // Clipboard may be blocked by browser permissions.
+      // Clipboard permission denied.
     }
   }
 
+  /*
+   * Download story image
+   */
   async function downloadStory() {
     try {
       setBusy(true);
 
-      const blob = await createStoryImage(
-        message,
-        username
-      );
+      const blob =
+        await createStoryImage(
+          message,
+          username
+        );
 
-      const url = URL.createObjectURL(blob);
+      const url =
+        URL.createObjectURL(blob);
 
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "wisper-anonymous-message.png";
+      const link =
+        document.createElement("a");
 
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      link.href = url;
+      link.download =
+        "wisper-anonymous-message.png";
+
+      document.body.appendChild(link);
+
+      link.click();
+
+      link.remove();
 
       URL.revokeObjectURL(url);
     } catch (error) {
-      console.error(error);
+      console.error(
+        "Story generation failed:",
+        error
+      );
     } finally {
       setBusy(false);
     }
   }
 
+  /*
+   * Native share
+   */
   async function shareStory() {
     try {
       setBusy(true);
 
-      const blob = await createStoryImage(
-        message,
-        username
-      );
+      const blob =
+        await createStoryImage(
+          message,
+          username
+        );
 
       const file = new File(
         [blob],
@@ -439,9 +526,13 @@ export default function ShareModal({
       );
 
       if (
-        navigator.share &&
-        navigator.canShare &&
-        navigator.canShare({ files: [file] })
+        typeof navigator.share ===
+          "function" &&
+        typeof navigator.canShare ===
+          "function" &&
+        navigator.canShare({
+          files: [file],
+        })
       ) {
         await navigator.share({
           title: "Whisper",
@@ -452,17 +543,44 @@ export default function ShareModal({
         return;
       }
 
-      await downloadStory();
+      /*
+       * Desktop browsers usually don't support
+       * sharing files. Download instead.
+       */
+      const url =
+        URL.createObjectURL(blob);
+
+      const link =
+        document.createElement("a");
+
+      link.href = url;
+      link.download =
+        "wisper-anonymous-message.png";
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      URL.revokeObjectURL(url);
     } catch (error: any) {
-      if (error?.name !== "AbortError") {
-        console.error(error);
+      if (
+        error?.name !==
+        "AbortError"
+      ) {
+        console.error(
+          "Share failed:",
+          error
+        );
       }
     } finally {
       setBusy(false);
     }
   }
 
-  async function shareWhatsApp() {
+  /*
+   * WhatsApp
+   */
+  function shareWhatsApp() {
     const text = encodeURIComponent(
       `Send me an anonymous message 👀\n${shareLink}`
     );
@@ -474,12 +592,16 @@ export default function ShareModal({
     );
   }
 
-  async function shareX() {
+  /*
+   * X
+   */
+  function shareX() {
     const text = encodeURIComponent(
       "Someone sent me an anonymous message 👀"
     );
 
-    const url = encodeURIComponent(shareLink);
+    const url =
+      encodeURIComponent(shareLink);
 
     window.open(
       `https://twitter.com/intent/post?text=${text}&url=${url}`,
@@ -488,21 +610,21 @@ export default function ShareModal({
     );
   }
 
-  async function handlePrimaryAction() {
+  function primaryAction() {
     if (platform === "whatsapp") {
-      await shareWhatsApp();
+      shareWhatsApp();
       return;
     }
 
     if (platform === "x") {
-      await shareX();
+      shareX();
       return;
     }
 
-    await shareStory();
+    shareStory();
   }
 
-  const isLastStep = step === 4;
+  const lastStep = step === 4;
 
   return (
     <div
@@ -520,11 +642,10 @@ export default function ShareModal({
           y: 0,
           scale: 1,
         }}
-        transition={{
-          duration: 0.2,
-        }}
         className="mx-auto my-3 w-full max-w-2xl overflow-hidden rounded-[2rem] bg-[#f7f7f8] shadow-2xl sm:my-8"
-        onClick={(event) => event.stopPropagation()}
+        onClick={(event) =>
+          event.stopPropagation()
+        }
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-black/5 bg-white px-5 py-4 sm:px-7">
@@ -551,7 +672,8 @@ export default function ShareModal({
         <div className="overflow-x-auto bg-white px-4 py-4 sm:px-7">
           <div className="mx-auto flex w-max gap-2">
             {platforms.map((item) => {
-              const active = platform === item.id;
+              const active =
+                platform === item.id;
 
               return (
                 <button
@@ -568,15 +690,14 @@ export default function ShareModal({
                   ].join(" ")}
                 >
                   {item.icon}
-
-                  <span>{item.label}</span>
+                  {item.label}
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* Instagram tutorial */}
+        {/* Instagram */}
         {platform === "instagram" && (
           <div className="px-4 pb-5 pt-5 sm:px-7">
             <div className="text-center">
@@ -587,57 +708,66 @@ export default function ShareModal({
               <h3 className="mt-1 text-2xl font-black text-gray-950">
                 {step === 1 &&
                   "Click the + button"}
+
                 {step === 2 &&
                   "Click the Link sticker"}
+
                 {step === 3 &&
                   "Paste your link"}
+
                 {step === 4 &&
                   "Share your story!"}
               </h3>
             </div>
 
             {/* Step indicators */}
-            <div className="mx-auto mt-5 flex max-w-[250px] items-center justify-center">
-              {[1, 2, 3, 4].map((number) => (
-                <div
-                  key={number}
-                  className="flex items-center"
-                >
-                  <button
-                    onClick={() => setStep(number)}
-                    className={[
-                      "grid h-9 w-9 place-items-center rounded-full text-sm font-black transition",
-                      number === step
-                        ? "bg-black text-white"
-                        : number < step
-                        ? "bg-gray-300 text-gray-800"
-                        : "bg-gray-200 text-gray-500",
-                    ].join(" ")}
+            <div className="mx-auto mt-5 flex max-w-[260px] items-center justify-center">
+              {[1, 2, 3, 4].map(
+                (number) => (
+                  <div
+                    key={number}
+                    className="flex items-center"
                   >
-                    {number < step ? (
-                      <Check size={17} />
-                    ) : (
-                      number
-                    )}
-                  </button>
-
-                  {number !== 4 && (
-                    <div
+                    <button
+                      onClick={() =>
+                        setStep(number)
+                      }
                       className={[
-                        "h-1 w-8 rounded-full transition sm:w-12",
-                        number < step
-                          ? "bg-gray-400"
-                          : "bg-gray-200",
+                        "grid h-9 w-9 place-items-center rounded-full text-sm font-black transition",
+                        number === step
+                          ? "bg-black text-white"
+                          : number < step
+                          ? "bg-gray-300 text-gray-800"
+                          : "bg-gray-200 text-gray-500",
                       ].join(" ")}
-                    />
-                  )}
-                </div>
-              ))}
+                    >
+                      {number < step ? (
+                        <Check size={17} />
+                      ) : (
+                        number
+                      )}
+                    </button>
+
+                    {number < 4 && (
+                      <div
+                        className={[
+                          "h-1 w-8 rounded-full sm:w-12",
+                          number < step
+                            ? "bg-gray-400"
+                            : "bg-gray-200",
+                        ].join(" ")}
+                      />
+                    )}
+                  </div>
+                )
+              )}
             </div>
 
-            {/* Tutorial image */}
+            {/* Tutorial */}
             <div className="mt-6">
-              <AnimatePresence mode="wait">
+              <AnimatePresence
+                mode="wait"
+              >
                 <motion.div
                   key={step}
                   initial={{
@@ -693,7 +823,7 @@ export default function ShareModal({
 
         {/* Snapchat */}
         {platform === "snapchat" && (
-          <div className="px-5 py-7 text-center sm:px-8">
+          <div className="px-5 py-8 text-center sm:px-8">
             <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-yellow-300 text-4xl shadow-lg">
               👻
             </div>
@@ -703,14 +833,14 @@ export default function ShareModal({
             </h3>
 
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500">
-              Download your anonymous message story,
-              then add it to your Snapchat story with
-              your Whisper link.
+              Download your anonymous message
+              story and add it to your
+              Snapchat story.
             </p>
 
             <div className="mt-6 rounded-2xl bg-white p-4 text-left shadow-sm">
               <div className="text-xs font-bold uppercase tracking-wider text-gray-400">
-                Your link
+                Your Whisper link
               </div>
 
               <div className="mt-2 break-all text-sm font-bold text-gray-800">
@@ -722,7 +852,7 @@ export default function ShareModal({
 
         {/* WhatsApp */}
         {platform === "whatsapp" && (
-          <div className="px-5 py-7 text-center sm:px-8">
+          <div className="px-5 py-8 text-center sm:px-8">
             <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-green-500 text-white shadow-lg">
               <MessageCircle size={40} />
             </div>
@@ -732,8 +862,9 @@ export default function ShareModal({
             </h3>
 
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500">
-              Send your Whisper link directly to your
-              friends or WhatsApp status.
+              Send your Whisper link directly
+              to your friends or share it on
+              your WhatsApp status.
             </p>
 
             <div className="mt-6 rounded-2xl bg-white p-4 text-left shadow-sm">
@@ -754,7 +885,7 @@ export default function ShareModal({
 
         {/* X */}
         {platform === "x" && (
-          <div className="px-5 py-7 text-center sm:px-8">
+          <div className="px-5 py-8 text-center sm:px-8">
             <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-black text-white shadow-lg">
               <span className="text-4xl font-black">
                 𝕏
@@ -766,8 +897,9 @@ export default function ShareModal({
             </h3>
 
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500">
-              Post your Whisper link and let your followers
-              send you anonymous messages.
+              Post your Whisper link and let
+              your followers send you anonymous
+              messages.
             </p>
 
             <div className="mt-6 rounded-2xl bg-white p-4 text-left shadow-sm">
@@ -776,7 +908,8 @@ export default function ShareModal({
               </div>
 
               <div className="mt-2 text-sm font-semibold text-gray-800">
-                Someone sent me an anonymous message 👀
+                Someone sent me an anonymous
+                message 👀
               </div>
 
               <div className="mt-1 break-all text-sm font-bold text-purple-600">
@@ -786,42 +919,51 @@ export default function ShareModal({
           </div>
         )}
 
-        {/* Bottom actions */}
+        {/* Bottom buttons */}
         <div className="border-t border-black/5 bg-white px-4 py-4 sm:px-7">
           {platform === "instagram" ? (
             <div className="flex items-center gap-3">
+              {/* Back */}
               <button
                 onClick={() =>
                   setStep((current) =>
-                    Math.max(1, current - 1)
+                    Math.max(
+                      1,
+                      current - 1
+                    )
                   )
                 }
                 disabled={step === 1}
-                className="flex items-center gap-2 rounded-2xl bg-gray-100 px-4 py-3 text-sm font-bold text-gray-700 transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex items-center gap-2 rounded-2xl bg-gray-100 px-4 py-3 text-sm font-bold text-gray-700 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <ArrowLeft size={17} />
+
                 <span className="hidden sm:inline">
                   Back
                 </span>
               </button>
 
-              {!isLastStep ? (
+              {/* Next / Share */}
+              {!lastStep ? (
                 <button
                   onClick={() =>
                     setStep((current) =>
-                      Math.min(4, current + 1)
+                      Math.min(
+                        4,
+                        current + 1
+                      )
                     )
                   }
-                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-black px-5 py-3.5 text-sm font-black text-white shadow-lg transition hover:scale-[1.01]"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-black px-5 py-3.5 text-sm font-black text-white shadow-lg"
                 >
                   Next Step
                   <ArrowRight size={17} />
                 </button>
               ) : (
                 <button
-                  onClick={handlePrimaryAction}
+                  onClick={primaryAction}
                   disabled={busy}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-purple-600 via-fuchsia-500 to-pink-500 px-5 py-3.5 text-sm font-black text-white shadow-lg transition hover:scale-[1.01] disabled:opacity-60"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-purple-600 via-fuchsia-500 to-pink-500 px-5 py-3.5 text-sm font-black text-white shadow-lg disabled:opacity-60"
                 >
                   <Instagram size={18} />
 
@@ -831,10 +973,11 @@ export default function ShareModal({
                 </button>
               )}
 
+              {/* Download */}
               <button
                 onClick={downloadStory}
                 disabled={busy}
-                className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gray-100 text-gray-700 transition hover:bg-gray-200 disabled:opacity-50"
+                className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gray-100 text-gray-700 disabled:opacity-50"
                 title="Download story"
               >
                 <Download size={19} />
@@ -845,23 +988,25 @@ export default function ShareModal({
               <button
                 onClick={downloadStory}
                 disabled={busy}
-                className="flex items-center justify-center gap-2 rounded-2xl bg-gray-100 px-4 py-3.5 text-sm font-bold text-gray-800 transition hover:bg-gray-200 disabled:opacity-50"
+                className="flex items-center justify-center gap-2 rounded-2xl bg-gray-100 px-4 py-3.5 text-sm font-bold text-gray-800 disabled:opacity-50"
               >
                 <Download size={18} />
                 Download
               </button>
 
               <button
-                onClick={handlePrimaryAction}
+                onClick={primaryAction}
                 disabled={busy}
-                className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-black px-5 py-3.5 text-sm font-black text-white transition hover:scale-[1.01] disabled:opacity-60"
+                className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-black px-5 py-3.5 text-sm font-black text-white disabled:opacity-60"
               >
                 {platform === "whatsapp" && (
                   <MessageCircle size={18} />
                 )}
 
                 {platform === "x" && (
-                  <span className="text-lg">𝕏</span>
+                  <span className="text-lg">
+                    𝕏
+                  </span>
                 )}
 
                 {platform === "snapchat" && (
@@ -871,7 +1016,8 @@ export default function ShareModal({
                 {busy
                   ? "Preparing..."
                   : `Share on ${
-                      platform === "whatsapp"
+                      platform ===
+                      "whatsapp"
                         ? "WhatsApp"
                         : platform === "x"
                         ? "X"
@@ -881,10 +1027,9 @@ export default function ShareModal({
             </div>
           )}
 
-          {/* Close */}
           <button
             onClick={close}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl py-2 text-sm font-bold text-gray-500 transition hover:text-gray-900"
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl py-2 text-sm font-bold text-gray-500 hover:text-gray-900"
           >
             <X size={16} />
             Close
