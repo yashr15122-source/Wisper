@@ -1,7 +1,14 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Copy, LogOut, Settings, Share2, Crown, Zap } from "lucide-react";
+import {
+  Copy,
+  LogOut,
+  Settings,
+  Share2,
+  Crown,
+  Zap,
+} from "lucide-react";
 import { io } from "socket.io-client";
 import { api, SOCKET_URL } from "../services/api";
 import { User, Message } from "../types";
@@ -16,20 +23,35 @@ const publicBase = () => {
 
 async function loadRazorpay() {
   if (window.Razorpay) return;
+
   await new Promise<void>((resolve, reject) => {
-    const existing = document.querySelector('script[data-razorpay="true"]');
+    const existing = document.querySelector(
+      'script[data-razorpay="true"]'
+    );
+
     if (existing) {
       existing.addEventListener("load", () => resolve());
-      existing.addEventListener("error", () => reject(new Error("Razorpay failed to load")));
+      existing.addEventListener("error", () =>
+        reject(new Error("Razorpay failed to load"))
+      );
       return;
     }
 
     const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+
+    script.src =
+      "https://checkout.razorpay.com/v1/checkout.js";
+
     script.async = true;
     script.dataset.razorpay = "true";
+
     script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Razorpay failed to load"));
+
+    script.onerror = () =>
+      reject(
+        new Error("Razorpay failed to load")
+      );
+
     document.body.appendChild(script);
   });
 }
@@ -37,40 +59,93 @@ async function loadRazorpay() {
 export default function Dashboard() {
   const nav = useNavigate();
   const qc = useQueryClient();
-  const [selected, setSelected] = useState<Message | null>(null);
-  const [share, setShare] = useState<Message | null>(null);
-  const [hint, setHint] = useState<Message | null>(null);
-  const [prompt, setPrompt] = useState("");
-  const [accept, setAccept] = useState(true);
-  const [copied, setCopied] = useState(false);
-  const [saveText, setSaveText] = useState("Save");
-  const [paying, setPaying] = useState<"hint" | "boost" | null>(null);
-  const [payError, setPayError] = useState("");
 
+  const [selected, setSelected] =
+    useState<Message | null>(null);
+
+  const [share, setShare] =
+    useState<Message | null>(null);
+
+  const [hint, setHint] =
+    useState<Message | null>(null);
+
+  const [prompt, setPrompt] = useState("");
+
+  const [accept, setAccept] =
+    useState(true);
+
+  const [copied, setCopied] =
+    useState(false);
+
+  const [saveText, setSaveText] =
+    useState("Save");
+
+  const [paying, setPaying] =
+    useState<"hint" | "boost" | null>(null);
+
+  const [payError, setPayError] =
+    useState("");
+
+  /*
+   * Current user
+   */
   const me = useQuery({
     queryKey: ["me"],
-    queryFn: async () => (await api.get("/users/me")).data.user as User
+    queryFn: async () =>
+      (await api.get("/users/me")).data
+        .user as User,
   });
 
+  /*
+   * Messages
+   */
   const messages = useQuery({
     queryKey: ["messages"],
-    queryFn: async () => (await api.get("/users/messages")).data.messages as Message[]
+    queryFn: async () =>
+      (await api.get("/users/messages"))
+        .data.messages as Message[],
   });
 
+  /*
+   * Socket connection
+   */
   useEffect(() => {
     if (!me.data) return;
+
     setPrompt(me.data.customPrompt);
-    setAccept(me.data.isAcceptingMessages);
-    const s = io(SOCKET_URL, { withCredentials: true });
-    s.on("message:new", () => qc.invalidateQueries({ queryKey: ["messages"] }));
+    setAccept(
+      me.data.isAcceptingMessages
+    );
+
+    const s = io(SOCKET_URL, {
+      withCredentials: true,
+    });
+
+    s.on("message:new", () => {
+      qc.invalidateQueries({
+        queryKey: ["messages"],
+      });
+    });
+
     return () => {
       s.disconnect();
     };
   }, [me.data, qc]);
 
-  if (me.isLoading)
-    return <div className="grid min-h-screen place-items-center text-white/50">Loading…</div>;
+  /*
+   * Loading
+   */
+  if (me.isLoading) {
+    return (
+      <div className="grid min-h-screen place-items-center text-white/50">
+        Loading…
+      </div>
+    );
+  }
 
+  /*
+   * Authentication error
+   */
   if (me.isError) {
     nav("/auth");
     return null;
@@ -78,45 +153,91 @@ export default function Dashboard() {
 
   const user = me.data!;
 
+  /*
+   * Admin redirect
+   */
   if (user.isAdmin) {
-    return <Navigate to="/admin" replace />;
+    return (
+      <Navigate
+        to="/admin"
+        replace
+      />
+    );
   }
 
+  /*
+   * Save inbox settings
+   */
   async function save() {
     setSaveText("Saving…");
 
     try {
       await api.patch("/users/profile", {
         customPrompt: prompt,
-        isAcceptingMessages: accept
+        isAcceptingMessages: accept,
       });
 
-      await qc.invalidateQueries({ queryKey: ["me"] });
+      await qc.invalidateQueries({
+        queryKey: ["me"],
+      });
+
       setSaveText("Saved ✓");
-      setTimeout(() => setSaveText("Save"), 1500);
+
+      setTimeout(
+        () => setSaveText("Save"),
+        1500
+      );
     } catch {
       setSaveText("Failed");
     }
   }
 
+  /*
+   * Logout
+   */
   async function logout() {
     await api.post("/auth/logout");
     nav("/auth");
   }
 
+  /*
+   * Copy public link
+   */
   async function copy() {
-    await navigator.clipboard.writeText(`${publicBase()}/${user.username}`);
+    await navigator.clipboard.writeText(
+      `${publicBase()}/${user.username}`
+    );
+
     setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+
+    setTimeout(
+      () => setCopied(false),
+      1500
+    );
   }
 
+  /*
+   * Open message
+   */
   async function opened(m: Message) {
-    await api.patch(`/users/messages/${m._id}/open`);
+    await api.patch(
+      `/users/messages/${m._id}/open`
+    );
+
     setSelected(m);
-    qc.invalidateQueries({ queryKey: ["messages"] });
+
+    qc.invalidateQueries({
+      queryKey: ["messages"],
+    });
   }
 
-  async function pay(product: "hint" | "boost", message: Message) {
+  /*
+   * Razorpay payment
+   */
+  async function pay(
+    product: "hint" | "boost",
+    message: Message
+  ) {
     setPayError("");
     setPaying(product);
 
@@ -124,69 +245,136 @@ export default function Dashboard() {
       await loadRazorpay();
 
       const order = (
-        await api.post("/payments/create-order", {
-          product,
-          messageId: message._id
-        })
+        await api.post(
+          "/payments/create-order",
+          {
+            product,
+            messageId: message._id,
+          }
+        )
       ).data;
 
-      await new Promise<void>((resolve, reject) => {
-        const checkout = new window.Razorpay({
-          key: order.keyId,
-          amount: order.amount,
-          currency: order.currency,
-          name: "Whisper",
-          description:
-            product === "hint"
-              ? "Premium sender hint"
-              : "Boost anonymous message",
-          order_id: order.orderId,
-          prefill: { email: user.email },
-          theme: { color: "#d946ef" },
-          modal: {
-            ondismiss: () => reject(new Error("Payment cancelled"))
-          },
-          handler: async response => {
-            try {
-              await api.post("/payments/verify", response);
-              resolve();
-            } catch (e: any) {
-              reject(
-                new Error(
-                  e.response?.data?.message ||
-                    "Payment verification failed"
-                )
-              );
-            }
-          }
-        });
+      await new Promise<void>(
+        (resolve, reject) => {
+          const checkout =
+            new window.Razorpay({
+              key: order.keyId,
 
-        checkout.open();
+              amount: order.amount,
+
+              currency:
+                order.currency,
+
+              name: "Whisper",
+
+              description:
+                product === "hint"
+                  ? "Premium sender hint"
+                  : "Boost anonymous message",
+
+              order_id:
+                order.orderId,
+
+              prefill: {
+                email: user.email,
+              },
+
+              theme: {
+                color: "#d946ef",
+              },
+
+              modal: {
+                ondismiss: () =>
+                  reject(
+                    new Error(
+                      "Payment cancelled"
+                    )
+                  ),
+              },
+
+              handler: async (
+                response
+              ) => {
+                try {
+                  await api.post(
+                    "/payments/verify",
+                    response
+                  );
+
+                  resolve();
+                } catch (e: any) {
+                  reject(
+                    new Error(
+                      e.response?.data
+                        ?.message ||
+                        "Payment verification failed"
+                    )
+                  );
+                }
+              },
+            });
+
+          checkout.open();
+        }
+      );
+
+      await qc.invalidateQueries({
+        queryKey: ["messages"],
       });
 
-      await qc.invalidateQueries({ queryKey: ["messages"] });
-
+      /*
+       * Hint unlocked
+       */
       if (product === "hint") {
-        setHint({ ...message, hintUnlocked: true });
+        setHint({
+          ...message,
+          hintUnlocked: true,
+        });
       } else {
-        setSelected(current =>
-          current ? { ...current, isBoosted: true } : current
+        /*
+         * Boosted message
+         */
+        setSelected((current) =>
+          current
+            ? {
+                ...current,
+                isBoosted: true,
+              }
+            : current
         );
       }
     } catch (e: any) {
-      if (e?.message !== "Payment cancelled")
-        setPayError(e?.message || "Payment failed.");
+      if (
+        e?.message !==
+        "Payment cancelled"
+      ) {
+        setPayError(
+          e?.message ||
+            "Payment failed."
+        );
+      }
     } finally {
       setPaying(null);
     }
   }
 
+  /*
+   * Public link
+   */
+  const userLink =
+    `${publicBase()}/${user.username}`;
+
   return (
     <main className="min-h-screen p-4 sm:p-8">
       <div className="mx-auto max-w-6xl">
+
+        {/* Header */}
         <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-sm text-white/40">Your anonymous inbox</p>
+            <p className="text-sm text-white/40">
+              Your anonymous inbox
+            </p>
+
             <h1 className="text-4xl font-black gradient-text">
               Hey, @{user.username} ✦
             </h1>
@@ -195,49 +383,76 @@ export default function Dashboard() {
           <button
             onClick={logout}
             className="rounded-xl bg-white/10 px-4 py-2"
+            aria-label="Logout"
           >
             <LogOut size={18} />
           </button>
         </header>
 
+        {/* Link + Settings */}
         <section className="mb-8 grid gap-5 lg:grid-cols-[1.5fr_1fr]">
+
+          {/* Public link */}
           <div className="rounded-[2rem] bg-gradient-to-br from-violet-600 via-fuchsia-600 to-rose-500 p-7 shadow-2xl">
-            <p className="text-sm font-semibold text-white/70">YOUR LINK</p>
+            <p className="text-sm font-semibold text-white/70">
+              YOUR LINK
+            </p>
 
             <p className="mt-3 break-all text-2xl font-black">
-              {publicBase()}/{user.username}
+              {userLink}
             </p>
 
             <button
               onClick={copy}
               className="mt-6 rounded-2xl bg-white px-5 py-3 font-bold text-black"
             >
-              <Copy className="mr-2 inline" size={18} />
-              {copied ? "Copied!" : "Copy link"}
+              <Copy
+                className="mr-2 inline"
+                size={18}
+              />
+
+              {copied
+                ? "Copied!"
+                : "Copy link"}
             </button>
           </div>
 
+          {/* Inbox settings */}
           <div className="glass rounded-[2rem] p-7">
             <div className="mb-4 flex items-center gap-2">
               <Settings size={19} />
-              <h2 className="font-bold">Inbox settings</h2>
+
+              <h2 className="font-bold">
+                Inbox settings
+              </h2>
             </div>
 
             <textarea
               value={prompt}
-              onChange={e =>
-                setPrompt(e.target.value.slice(0, 120))
+              onChange={(e) =>
+                setPrompt(
+                  e.target.value.slice(
+                    0,
+                    120
+                  )
+                )
               }
               rows={2}
               className="w-full rounded-2xl bg-white/10 p-4 outline-none focus:ring-2 focus:ring-fuchsia-400"
+              placeholder="Write a custom prompt..."
             />
 
             <label className="mt-4 flex items-center gap-3 text-sm">
               <input
                 type="checkbox"
                 checked={accept}
-                onChange={e => setAccept(e.target.checked)}
+                onChange={(e) =>
+                  setAccept(
+                    e.target.checked
+                  )
+                }
               />
+
               Accept incoming messages
             </label>
 
@@ -250,11 +465,17 @@ export default function Dashboard() {
           </div>
         </section>
 
+        {/* Inbox heading */}
         <div className="mb-5 flex items-end justify-between">
           <div>
-            <h2 className="text-2xl font-bold">Inbox</h2>
+            <h2 className="text-2xl font-bold">
+              Inbox
+            </h2>
+
             <p className="text-sm text-white/40">
-              {messages.data?.length || 0} messages
+              {messages.data?.length ||
+                0}{" "}
+              messages
             </p>
           </div>
 
@@ -262,58 +483,87 @@ export default function Dashboard() {
             onClick={copy}
             className="rounded-xl bg-white/10 px-4 py-2 text-sm"
           >
-            <Share2 className="mr-2 inline" size={16} />
+            <Share2
+              className="mr-2 inline"
+              size={16}
+            />
+
             Share
           </button>
         </div>
 
+        {/* Payment error */}
         {payError && (
           <div className="mb-5 rounded-2xl bg-red-500/10 p-4 text-sm text-red-200">
             {payError}
           </div>
         )}
 
+        {/* Messages */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {messages.data?.map(m => (
+          {messages.data?.map((m) => (
             <MessageCard
               key={m._id}
               message={m}
-              onOpen={() => opened(m)}
+              onOpen={() =>
+                opened(m)
+              }
               onFavorite={async () => {
                 await api.patch(
                   `/users/messages/${m._id}/favorite`
                 );
+
                 qc.invalidateQueries({
-                  queryKey: ["messages"]
+                  queryKey: ["messages"],
                 });
               }}
               onDelete={async () => {
-                await api.delete(`/users/messages/${m._id}`);
+                await api.delete(
+                  `/users/messages/${m._id}`
+                );
+
                 qc.invalidateQueries({
-                  queryKey: ["messages"]
+                  queryKey: ["messages"],
                 });
               }}
             />
           ))}
         </div>
 
+        {/* Selected message modal */}
         {selected && (
           <div
             className="fixed inset-0 z-40 grid place-items-center bg-black/70 p-4"
-            onClick={() => setSelected(null)}
+            onClick={() =>
+              setSelected(null)
+            }
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
+              initial={{
+                scale: 0.95,
+                opacity: 0,
+              }}
+              animate={{
+                scale: 1,
+                opacity: 1,
+              }}
               className="w-full max-w-lg rounded-[2rem] bg-gradient-to-br from-violet-600 via-fuchsia-600 to-rose-500 p-8"
-              onClick={e => e.stopPropagation()}
+              onClick={(e) =>
+                e.stopPropagation()
+              }
             >
               <div className="flex items-center justify-between">
-                <p className="text-sm text-white/60">Anonymous</p>
+                <p className="text-sm text-white/60">
+                  Anonymous
+                </p>
 
                 {selected.isBoosted && (
                   <span className="rounded-full bg-amber-300/20 px-3 py-1 text-xs font-bold text-amber-100">
-                    <Zap size={13} className="mr-1 inline" />
+                    <Zap
+                      size={13}
+                      className="mr-1 inline"
+                    />
+
                     Boosted
                   </span>
                 )}
@@ -324,31 +574,55 @@ export default function Dashboard() {
               </p>
 
               <div className="mt-8 grid gap-3 sm:grid-cols-2">
+
+                {/* Share */}
                 <button
-                  onClick={() => setShare(selected)}
+                  onClick={() =>
+                    setShare(selected)
+                  }
                   className="rounded-2xl bg-white px-4 py-3 font-bold text-black"
                 >
                   Share to story
                 </button>
 
+                {/* Hint */}
                 <button
-                  onClick={() => setHint(selected)}
+                  onClick={() =>
+                    setHint(selected)
+                  }
                   className="rounded-2xl bg-black/20 px-4 py-3 font-bold"
                 >
-                  <Crown size={17} className="mr-1 inline" />
+                  <Crown
+                    size={17}
+                    className="mr-1 inline"
+                  />
+
                   {selected.hintUnlocked
                     ? "View premium hint"
                     : "Unlock sender hint"}
                 </button>
 
+                {/* Boost */}
                 {!selected.isBoosted && (
                   <button
-                    onClick={() => pay("boost", selected)}
-                    disabled={paying !== null}
+                    onClick={() =>
+                      pay(
+                        "boost",
+                        selected
+                      )
+                    }
+                    disabled={
+                      paying !== null
+                    }
                     className="sm:col-span-2 rounded-2xl bg-amber-300/20 px-4 py-3 font-bold text-amber-100 disabled:opacity-50"
                   >
-                    <Zap size={17} className="mr-1 inline" />
-                    {paying === "boost"
+                    <Zap
+                      size={17}
+                      className="mr-1 inline"
+                    />
+
+                    {paying ===
+                    "boost"
                       ? "Opening payment…"
                       : "Boost message • ₹29"}
                   </button>
@@ -358,18 +632,27 @@ export default function Dashboard() {
           </div>
         )}
 
+        {/* UPDATED SHARE MODAL */}
         {share && (
           <ShareModal
             message={share}
-            close={() => setShare(null)}
+            username={user.username}
+            close={() =>
+              setShare(null)
+            }
           />
         )}
 
+        {/* Hint modal */}
         {hint && (
           <HintModal
             message={hint}
-            close={() => setHint(null)}
-            onPay={() => pay("hint", hint)}
+            close={() =>
+              setHint(null)
+            }
+            onPay={() =>
+              pay("hint", hint)
+            }
           />
         )}
       </div>
